@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcripts - Kansas RP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+        }
+
+        .transcripts-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .transcript-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .transcript-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .transcript-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .ticket-id {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .timestamp {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .transcript-details {
+            margin-bottom: 1rem;
+        }
+
+        .transcript-details p {
+            margin-bottom: 0.5rem;
+        }
+
+        .view-button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: #ff6b6b;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .view-button:hover {
+            background: #ff5252;
+        }
+
+        .no-transcripts {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+            font-style: italic;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .transcript-card {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Transcripts</h1>
+        <div class="transcripts-list" id="transcriptsList">
+            <div class="no-transcripts">Loading transcripts...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadTranscripts() {
+            try {
+                const response = await fetch('/api/transcripts');
+                const transcripts = await response.json();
+                
+                const transcriptsList = document.getElementById('transcriptsList');
+                
+                if (transcripts.length === 0) {
+                    transcriptsList.innerHTML = '<div class="no-transcripts">No transcripts available</div>';
+                    return;
+                }
+
+                transcriptsList.innerHTML = transcripts
+                    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+                    .map(transcript => `
+                        <div class="transcript-card">
+                            <div class="transcript-header">
+                                <span class="ticket-id">Ticket #${transcript.ticketId}</span>
+                                <span class="timestamp">${new Date(transcript.uploadedAt).toLocaleString()}</span>
+                            </div>
+                            <div class="transcript-details">
+                                <p><strong>User:</strong> ${transcript.username}</p>
+                                <p><strong>Type:</strong> ${transcript.ticketType}</p>
+                                <p><strong>Inquiry:</strong> ${transcript.inquiry}</p>
+                                <p><strong>Duration:</strong> ${
+                                    formatDuration(new Date(transcript.openedAt), new Date(transcript.closedAt))
+                                }</p>
+                            </div>
+                            <a href="/transcripts/${transcript.filename}" class="view-button" target="_blank">
+                                View Transcript
+                            </a>
+                        </div>
+                    `)
+                    .join('');
+            } catch (error) {
+                console.error('Error loading transcripts:', error);
+                document.getElementById('transcriptsList').innerHTML = 
+                    '<div class="no-transcripts">Error loading transcripts</div>';
+            }
+        }
+
+        function formatDuration(start, end) {
+            const diff = Math.abs(end - start);
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            }
+            return `${minutes}m`;
+        }
+
+        // Load transcripts when the page loads
+        loadTranscripts();
+    </script>
+</body>
+</html> 
