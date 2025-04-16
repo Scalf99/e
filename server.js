@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const bodyParser = require('body-parser');
+const transcriptsRouter = require('./api/transcripts');
 
 const app = express();
 const port = process.env.PORT || 6200;
@@ -62,6 +63,9 @@ app.use(express.static('public'));
 // Set up multer for file uploads with memory storage for Vercel
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+// API Routes
+app.use('/api/transcripts', transcriptsRouter);
 
 // Serve the main coming soon page
 app.get('/', (req, res) => {
