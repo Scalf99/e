@@ -9,8 +9,7 @@ const port = process.env.PORT || 6200;
 
 // Log all incoming requests to help debug
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - ${req.realIp || req.ip}`);
-    console.log('Headers:', req.headers);
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
 });
 
@@ -60,23 +59,8 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Set up multer for file uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'public/transcripts';
-        // Create directory if it doesn't exist
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        // Generate unique filename
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'transcript_' + uniqueSuffix + '.html');
-    }
-});
-
+// Set up multer for file uploads with memory storage for Vercel
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Serve the main coming soon page
@@ -96,59 +80,25 @@ app.post('/api/transcripts/upload', upload.single('transcript'), async (req, res
 
         const { ticketId, username, ticketType, inquiry, openedAt, closedAt } = req.body;
         
-        // Store metadata in a JSON file (you might want to use a database in production)
-        const metadata = {
-            ticketId,
-            username,
-            ticketType,
-            inquiry,
-            openedAt,
-            closedAt,
-            filename: req.file.filename,
-            uploadedAt: new Date().toISOString()
-        };
-
-        const metadataPath = path.join('public/transcripts', 'metadata.json');
-        let allMetadata = [];
-        
-        if (fs.existsSync(metadataPath)) {
-            allMetadata = JSON.parse(fs.readFileSync(metadataPath));
-        }
-        
-        allMetadata.push(metadata);
-        fs.writeFileSync(metadataPath, JSON.stringify(allMetadata, null, 2));
-
+        // For Vercel, we'll need to use a database instead of file storage
+        // For now, we'll just return success
         res.json({
             success: true,
-            filename: req.file.filename,
-            url: `/transcripts/${req.file.filename}`
+            message: 'Transcript received. Note: Storage functionality needs to be implemented with a database for Vercel deployment.'
         });
     } catch (error) {
-        console.error('Error uploading transcript:', error);
+        console.error('Error handling transcript:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to upload transcript'
+            error: 'Failed to handle transcript'
         });
     }
 });
 
 // Endpoint to list all transcripts
 app.get('/api/transcripts', (req, res) => {
-    try {
-        const metadataPath = path.join('public/transcripts', 'metadata.json');
-        if (!fs.existsSync(metadataPath)) {
-            return res.json([]);
-        }
-        
-        const metadata = JSON.parse(fs.readFileSync(metadataPath));
-        res.json(metadata);
-    } catch (error) {
-        console.error('Error fetching transcripts:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch transcripts'
-        });
-    }
+    // For Vercel, this needs to be implemented with a database
+    res.json([]);
 });
 
 // Create transcripts page
@@ -166,4 +116,7 @@ app.listen(port, '0.0.0.0', () => {
     console.log(`Local: http://localhost:${port}`);
     console.log(`Network: http://your-ip:${port}`);
     console.log('----------------------------------------');
-}); 
+});
+
+// Export the Express API
+module.exports = app; 
