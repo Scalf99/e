@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "pages/**/*",
+      "src": "public/**/*",
       "use": "@vercel/static"
     }
   ],
@@ -17,15 +17,15 @@
     },
     {
       "src": "/transcripts",
-      "dest": "/pages/transcripts.html"
+      "dest": "/public/transcripts/index.html"
     },
     {
       "src": "/transcripts/(.*)",
-      "dest": "/pages/transcripts/$1"
+      "dest": "/public/transcripts/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/public/$1"
     }
   ]
 } 
