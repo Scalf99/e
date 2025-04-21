@@ -1,11 +1,12 @@
-# API File Upload Service
+# API File Upload Service for Discord Transcripts
 
-A Node.js API service for file uploads, ready to deploy to Vercel and use with your custom domain (api.domain.com).
+A Node.js API service for uploading Discord ticket transcripts and other files, ready to deploy to Vercel and use with your custom domain (api.domain.com).
 
 ## Features
 
-- File upload endpoint with customizable size limits and file type filtering
-- List all uploaded files
+- Discord ticket transcript upload endpoint
+- General file upload capabilities
+- List all uploaded files and transcripts
 - Ready for Vercel deployment
 - CORS enabled
 - Custom domain support
@@ -35,9 +36,32 @@ A Node.js API service for file uploads, ready to deploy to Vercel and use with y
 ### API Endpoints
 
 - `GET /` - API info and available endpoints
-- `POST /api/upload` - Upload a file (use form-data with 'file' field)
-- `GET /api/files` - List all uploaded files
+- `POST /api/upload` - Upload a general file (use form-data with 'file' field)
+- `POST /api/transcripts/upload` - Upload a Discord ticket transcript (use form-data with 'transcript' field)
+- `GET /api/files` - List all uploaded general files
+- `GET /api/transcripts` - List all uploaded Discord transcripts
 - `GET /uploads/:filename` - Access an uploaded file
+- `GET /uploads/transcripts/:filename` - Access an uploaded transcript
+
+## Discord Bot Integration
+
+To integrate with your Discord bot for ticket transcript uploads, check the example in `examples/discord-upload-example.js`. This shows how to:
+
+1. Generate HTML transcripts from ticket channels
+2. Upload them to your API
+3. Share the transcript URL back in Discord
+
+### Required fields for transcript uploads:
+
+- `transcript` - The HTML file content
+- `ticketId` - Identifier for the ticket
+- `userId` - Discord user ID who created the ticket
+- `guildId` - Discord server ID
+- `closedBy` - Discord user ID who closed the ticket
+
+## Testing the API
+
+See `examples/curl-upload-example.md` for examples of how to test the API using cURL and PowerShell.
 
 ### Deployment to Vercel
 
@@ -76,7 +100,7 @@ A Node.js API service for file uploads, ready to deploy to Vercel and use with y
 Configure these in your Vercel project settings:
 
 - `MAX_FILE_SIZE`: Maximum file size in bytes (default: 10MB)
-- `ALLOWED_FILE_TYPES`: Comma-separated list of allowed MIME types
+- `ALLOWED_FILE_TYPES`: Comma-separated list of allowed MIME types (includes text/html for transcripts)
 
 ## Important Notes for File Storage
 
@@ -92,3 +116,77 @@ Vercel's serverless functions have an ephemeral filesystem, which means:
 ## License
 
 MIT 
+
+# Discord Transcript API Examples
+
+This repository contains examples of how to use the API.scalf.dev transcript generation service, which allows you to create HTML transcripts of Discord channels.
+
+## API Overview
+
+The API.scalf.dev service provides a simple way to generate Discord channel transcripts. The API endpoint is:
+
+```
+https://api.scalf.dev/api/transcripts/generate
+```
+
+## Examples
+
+This repository includes two example implementations:
+
+1. **Direct API Usage** (`examples/direct-api-usage.js`): A simple example showing how to directly call the transcript API without any Discord.js integration.
+
+2. **Discord Bot Integration** (`examples/discord-bot-integration-simplified.js`): A more comprehensive example that demonstrates how to integrate transcript generation into a Discord bot with a ticket system.
+
+## Required Parameters
+
+The API requires the following parameters:
+
+- `channelId`: The ID of the Discord channel to generate a transcript for
+- `guildId`: The ID of the Discord guild (server) that the channel belongs to
+
+## Optional Parameters
+
+The API also accepts several optional parameters:
+
+- `userId`: ID of the user who created the ticket
+- `username`: Username to display in the transcript
+- `closedBy`: ID of the user who closed the ticket
+- `apiKey`: Your API key if required
+- `includeAttachments`: Whether to include message attachments (default: true)
+- `includeReactions`: Whether to include message reactions (default: true)
+- `useRelativeTimestamps`: Whether to use relative timestamps (default: true)
+
+## Getting Started
+
+1. Install dependencies:
+   ```
+   npm install discord.js node-fetch
+   ```
+
+2. Run the simple example:
+   ```
+   node examples/direct-api-usage.js
+   ```
+
+3. Or run the Discord bot example (requires a bot token):
+   ```
+   node examples/discord-bot-integration-simplified.js
+   ```
+
+## Response Format
+
+A successful API response will contain a `file` object with:
+
+- `url`: The URL to the generated transcript
+- `type`: The file type (usually HTML)
+- `size`: The file size in bytes
+
+## Error Handling
+
+The examples include proper error handling to deal with API errors and other issues that might occur during transcript generation.
+
+## Notes
+
+- Replace placeholder IDs and tokens with your actual Discord IDs and bot token
+- The Discord bot example requires Discord.js v14 or later
+- For production use, you may want to add additional error handling 
