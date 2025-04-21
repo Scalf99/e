@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const dotenv = require('dotenv');
 const crypto = require('crypto');
 const axios = require('axios');
+const { put } = require('@vercel/blob');
 
 // Load environment variables
 dotenv.config();
@@ -297,13 +298,32 @@ app.post('/api/transcripts/generate', async (req, res) => {
       username
     });
 
-    // Generate a unique filename (but don't save to disk)
-    const fileName = `transcript_${username}_${channelId}_${Date.now()}.html`;
+    // Generate a unique filename
+    const timestamp = Date.now();
+    const fileName = `transcript_${username}_${channelId}_${timestamp}.html`;
     
-    // Create response with file info - skip the filesystem operations
+    // Upload the HTML content to Vercel Blob storage
+    let publicUrl;
+    try {
+      // Save transcript to Vercel Blob storage
+      const blob = await put(fileName, html, {
+        contentType: 'text/html',
+        access: 'public',
+      });
+      
+      // Get the public URL from the blob
+      publicUrl = blob.url;
+      console.log(`Transcript uploaded to Blob storage: ${publicUrl}`);
+    } catch (storageError) {
+      console.error('Error storing transcript:', storageError);
+      
+      // If Blob storage fails, include the HTML content directly in the response
+      publicUrl = null;
+    }
+    
+    // Create response with file info
     const host = req.get('host') || 'api.scalf.dev';
     
-    // Return the HTML content directly in the response instead of a URL
     const fileInfo = {
       ticketId: channelId,
       userId,
@@ -313,7 +333,8 @@ app.post('/api/transcripts/generate', async (req, res) => {
       filename: fileName,
       mimetype: 'text/html',
       size: html.length,
-      content: html, // Include the actual HTML content in the response
+      content: publicUrl ? null : html, // Only include content if we couldn't upload to Blob
+      url: publicUrl || `https://${host}/api/transcripts/view/${fileName}`,
       uploadedAt: new Date(),
       messageCount: messages.length,
       isPlaceholder: !DISCORD_BOT_TOKEN || messages.length <= 2
@@ -334,6 +355,31 @@ app.post('/api/transcripts/generate', async (req, res) => {
     }
     res.status(500).json({ error: `Failed to generate transcript: ${error.message}` });
   }
+});
+
+// Add a fallback endpoint to view transcripts if not using Blob storage
+app.get('/api/transcripts/view/:filename', async (req, res) => {
+  const { filename } = req.params;
+  
+  // This is a fallback for cases where Blob storage isn't configured
+  // In production with Vercel, you should use Blob storage instead
+  res.status(200).send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Transcript Viewer</title>
+        <style>
+          body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+          .message { border-bottom: 1px solid #eee; padding: 10px 0; }
+        </style>
+      </head>
+      <body>
+        <h1>Transcript Viewer</h1>
+        <p>This is a placeholder viewer. In production, configure Vercel Blob storage for proper transcript hosting.</p>
+        <p>Requested transcript: ${filename}</p>
+      </body>
+    </html>
+  `);
 });
 
 // Function to generate HTML transcript from Discord messages

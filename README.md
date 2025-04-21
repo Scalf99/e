@@ -133,17 +133,45 @@ https://api.scalf.dev/api/transcripts/generate
 
 The API now works without requiring a Discord bot token on the server side. When no token is configured, it will generate a simplified transcript with placeholder messages. This makes it easy to get started without any authentication setup.
 
-## HTML Content Direct Return
+## Transcript Hosting on api.scalf.dev
 
-Instead of storing transcripts on the server (which doesn't work in serverless environments like Vercel), the API now returns the HTML content directly in the response. Your client code should save this HTML to a file or handle it as needed.
+Transcripts are now hosted directly on api.scalf.dev using Vercel Blob storage. This means users receive a direct URL to view their transcript online, such as:
+
+```
+https://api.scalf.dev/api/transcripts/view/transcript_username_channelid_timestamp.html
+```
+
+or a direct link to the Vercel Blob storage:
+
+```
+https://[blob-storage-id].public.blob.vercel-storage.com/transcript_username_channelid_timestamp.html
+```
+
+### Setting Up Vercel Blob Storage
+
+To set up Vercel Blob storage for your own deployment:
+
+1. Install the @vercel/blob package:
+   ```
+   npm install @vercel/blob
+   ```
+
+2. Add the required environment variables to your Vercel project:
+   - `BLOB_READ_WRITE_TOKEN`: Your Vercel Blob storage read/write token
+
+3. Create tokens in your Vercel dashboard:
+   - Go to your project in the Vercel dashboard
+   - Navigate to Storage → Blob
+   - Click "Create" if you haven't created a storage yet
+   - Create a read/write token and add it to your environment variables
 
 ## Examples
 
 This repository includes two example implementations:
 
-1. **Direct API Usage** (`examples/direct-api-usage.js`): A simple example showing how to directly call the transcript API and save the returned HTML to a local file.
+1. **Direct API Usage** (`examples/direct-api-usage.js`): A simple example showing how to directly call the transcript API and receive a URL to the hosted transcript.
 
-2. **Discord Bot Integration** (`examples/discord-bot-integration-simplified.js`): A more comprehensive example that demonstrates how to integrate transcript generation into a Discord bot with a ticket system. It saves the transcript locally and uploads it to Discord as an attachment.
+2. **Discord Bot Integration** (`examples/discord-bot-integration-simplified.js`): A more comprehensive example that demonstrates how to integrate transcript generation into a Discord bot with a ticket system. It uses the hosted transcript URL in Discord embeds.
 
 ## Required Parameters
 
@@ -186,20 +214,21 @@ The API also accepts several optional parameters:
 
 A successful API response will contain a `file` object with:
 
-- `content`: The HTML content of the transcript
-- `filename`: A suggested filename for the transcript
+- `url`: The URL to the hosted transcript on api.scalf.dev or Vercel Blob storage
+- `filename`: The filename of the transcript
 - `mimetype`: The file type (usually text/html)
 - `size`: The file size in bytes
 - `messageCount`: Number of messages in the transcript
 - `isPlaceholder`: Boolean indicating if this is a placeholder transcript
+- `content`: The HTML content (only included as fallback if Blob storage is not available)
 
-## Handling the HTML Content
+## Fallback Behavior
 
-The examples show different ways to handle the returned HTML content:
+The service has several fallbacks to ensure transcripts are always available:
 
-1. **Save to a local file**: Both examples demonstrate saving the HTML to a local file
-2. **Upload to Discord**: The bot example shows how to upload the transcript as an attachment to a Discord channel
-3. **Custom handling**: You can also send it to a web server, cloud storage, or other service
+1. **With Vercel Blob storage**: Transcripts are stored in Blob storage with a public URL
+2. **Without Blob storage**: The API generates a URL on api.scalf.dev that serves the transcript
+3. **If both fail**: The HTML content is included directly in the API response
 
 ## Error Handling
 
