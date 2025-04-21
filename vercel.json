@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.js"
+    }
+  ],
+  "env": {
+    "MAX_FILE_SIZE": "10485760",
+    "ALLOWED_FILE_TYPES": "image/jpeg,image/png,application/pdf,text/plain,text/html"
+  }
+} 

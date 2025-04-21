@@ -1,103 +1,94 @@
-# Kansas RP Website with Transcript System
+# API File Upload Service
 
-This is a web application that includes a coming soon page and a transcript management system for Discord ticket logs.
+A Node.js API service for file uploads, ready to deploy to Vercel and use with your custom domain (api.domain.com).
 
 ## Features
 
-- Coming soon landing page with interactive background
-- Transcript upload API endpoint
-- Transcript viewing interface
-- Automatic metadata storage
-- Responsive design
+- File upload endpoint with customizable size limits and file type filtering
+- List all uploaded files
+- Ready for Vercel deployment
+- CORS enabled
+- Custom domain support
 
-## Setup
+## Getting Started
 
-1. Install dependencies:
-```bash
-npm install
-```
+### Prerequisites
 
-2. Create required directories:
-```bash
-mkdir -p public/transcripts
-```
+- Node.js 18 or later
+- npm or yarn
+- A Vercel account
+- A domain name with DNS access
 
-3. Start the server:
-```bash
-npm start
-```
+### Local Development
 
-For development with auto-reload:
-```bash
-npm run dev
-```
+1. Clone this repository
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Start the development server:
+   ```
+   npm run dev
+   ```
+4. The API will be available at http://localhost:3000
 
-The server will start on port 3000 by default. You can change this by setting the `PORT` environment variable.
+### API Endpoints
 
-## API Endpoints
+- `GET /` - API info and available endpoints
+- `POST /api/upload` - Upload a file (use form-data with 'file' field)
+- `GET /api/files` - List all uploaded files
+- `GET /uploads/:filename` - Access an uploaded file
 
-### Upload Transcript
-- **URL:** `/api/transcripts/upload`
-- **Method:** POST
-- **Content-Type:** multipart/form-data
-- **Fields:**
-  - `transcript` (file): The HTML transcript file
-  - `ticketId` (string): The Discord ticket ID
-  - `username` (string): The user's name
-  - `ticketType` (string): The type of ticket
-  - `inquiry` (string): The ticket inquiry
-  - `openedAt` (string): ISO timestamp when ticket was opened
-  - `closedAt` (string): ISO timestamp when ticket was closed
+### Deployment to Vercel
 
-### List Transcripts
-- **URL:** `/api/transcripts`
-- **Method:** GET
-- **Response:** JSON array of transcript metadata
+1. Install the Vercel CLI:
+   ```
+   npm install -g vercel
+   ```
 
-## Pages
+2. Login to Vercel:
+   ```
+   vercel login
+   ```
 
-- `/` - Coming soon landing page
-- `/transcripts` - Transcript viewing interface
+3. Deploy to Vercel:
+   ```
+   vercel
+   ```
 
-## File Structure
+4. For production deployment:
+   ```
+   vercel --prod
+   ```
 
-```
-.
-├── public/
-│   ├── transcripts/    # Stored transcripts and metadata
-│   └── transcripts.html # Transcript viewing page
-├── index.html          # Coming soon page
-├── server.js          # Express server
-├── package.json       # Dependencies
-└── README.md         # This file
-```
+### Connecting Your Custom Domain (api.domain.com)
 
-## Discord Bot Integration
+1. Log in to your Vercel dashboard
+2. Select your deployed project
+3. Go to "Settings" > "Domains"
+4. Add your domain: `api.domain.com`
+5. Follow Vercel's instructions to configure your DNS settings:
+   - Add a CNAME record pointing `api` to `cname.vercel-dns.com`
+   - Or follow the specific instructions provided by Vercel
 
-Update your Discord bot's ticket system to use the `/api/transcripts/upload` endpoint when saving transcripts. Example code for the bot:
+## Environment Variables
 
-```javascript
-const axios = require('axios');
-const FormData = require('form-data');
+Configure these in your Vercel project settings:
 
-async function uploadTranscript(transcriptHtml, metadata) {
-    const formData = new FormData();
-    formData.append('transcript', Buffer.from(transcriptHtml), 'transcript.html');
-    formData.append('ticketId', metadata.ticketId);
-    formData.append('username', metadata.username);
-    formData.append('ticketType', metadata.ticketType);
-    formData.append('inquiry', metadata.inquiry);
-    formData.append('openedAt', metadata.openedAt);
-    formData.append('closedAt', metadata.closedAt);
+- `MAX_FILE_SIZE`: Maximum file size in bytes (default: 10MB)
+- `ALLOWED_FILE_TYPES`: Comma-separated list of allowed MIME types
 
-    try {
-        const response = await axios.post('http://your-website.com/api/transcripts/upload', formData, {
-            headers: formData.getHeaders()
-        });
-        return response.data.url;
-    } catch (error) {
-        console.error('Failed to upload transcript:', error);
-        throw error;
-    }
-}
-``` 
+## Important Notes for File Storage
+
+Vercel's serverless functions have an ephemeral filesystem, which means:
+
+1. Files uploaded through this API in production will not persist between function invocations
+2. For production use, modify the code to use:
+   - Vercel Blob Storage
+   - Amazon S3
+   - Firebase Storage
+   - Or another cloud storage solution
+
+## License
+
+MIT 
