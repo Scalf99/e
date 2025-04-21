@@ -297,21 +297,13 @@ app.post('/api/transcripts/generate', async (req, res) => {
       username
     });
 
-    // Save HTML file
-    const fileName = `transcript_${username}_${channelId}.html`;
-    const transcriptsDir = path.join(__dirname, 'uploads', 'transcripts');
+    // Generate a unique filename (but don't save to disk)
+    const fileName = `transcript_${username}_${channelId}_${Date.now()}.html`;
     
-    if (!fs.existsSync(transcriptsDir)) {
-      fs.mkdirSync(transcriptsDir, { recursive: true });
-    }
-    
-    const filePath = path.join(transcriptsDir, fileName);
-    fs.writeFileSync(filePath, html);
-
-    // Create response with file info
+    // Create response with file info - skip the filesystem operations
     const host = req.get('host') || 'api.scalf.dev';
-    const publicViewUrl = `https://${host}/uploads/transcripts/${fileName}`;
     
+    // Return the HTML content directly in the response instead of a URL
     const fileInfo = {
       ticketId: channelId,
       userId,
@@ -321,8 +313,7 @@ app.post('/api/transcripts/generate', async (req, res) => {
       filename: fileName,
       mimetype: 'text/html',
       size: html.length,
-      path: `/uploads/transcripts/${fileName}`,
-      url: publicViewUrl,
+      content: html, // Include the actual HTML content in the response
       uploadedAt: new Date(),
       messageCount: messages.length,
       isPlaceholder: !DISCORD_BOT_TOKEN || messages.length <= 2
