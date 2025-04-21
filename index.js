@@ -180,49 +180,114 @@ app.post('/api/transcripts/generate', async (req, res) => {
       guildId, 
       username = 'user', 
       closedBy = 'unknown',
-      limit = 100 // Number of messages to fetch
+      limit = 100, // Number of messages to fetch
+      messageContent = '' // Optional message content when not using Discord API
     } = req.body;
 
     if (!channelId) {
       return res.status(400).json({ error: 'Channel ID is required' });
     }
 
-    if (!DISCORD_BOT_TOKEN) {
-      return res.status(500).json({ error: 'Discord bot token not configured on server' });
+    let messages = [];
+    let channelName = 'unknown-channel';
+
+    // Check if we have a Discord bot token configured
+    if (DISCORD_BOT_TOKEN) {
+      try {
+        // Fetch messages from Discord API
+        const response = await axios.get(
+          `https://discord.com/api/v10/channels/${channelId}/messages?limit=${limit}`,
+          {
+            headers: {
+              'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!response.data || !Array.isArray(response.data)) {
+          throw new Error('Failed to fetch Discord messages');
+        }
+
+        // Sort messages by timestamp (oldest first)
+        messages = response.data.sort((a, b) => 
+          new Date(a.timestamp) - new Date(b.timestamp)
+        );
+
+        // Get channel info
+        const channelResponse = await axios.get(
+          `https://discord.com/api/v10/channels/${channelId}`,
+          {
+            headers: {
+              'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        channelName = channelResponse.data.name || 'unknown-channel';
+      } catch (apiError) {
+        console.error('Discord API error:', apiError.message);
+        // If Discord API fails, we'll fall back to generating a basic transcript
+        messages = [];
+      }
     }
 
-    // Fetch messages from Discord API
-    const response = await axios.get(
-      `https://discord.com/api/v10/channels/${channelId}/messages?limit=${limit}`,
-      {
-        headers: {
-          'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
+    // If we don't have a Discord bot token or the API call failed, create a basic transcript
+    if (messages.length === 0) {
+      // Create a placeholder message
+      const currentDate = new Date().toISOString();
+      
+      messages = [{
+        id: '1',
+        type: 0,
+        content: messageContent || 'This is a placeholder transcript because no Discord bot token was configured on the server.',
+        channel_id: channelId,
+        author: {
+          id: userId || '0',
+          username: username || 'System',
+          discriminator: '0000',
+          avatar: null,
+          bot: false
+        },
+        attachments: [],
+        embeds: [],
+        mentions: [],
+        mention_roles: [],
+        pinned: false,
+        mention_everyone: false,
+        tts: false,
+        timestamp: currentDate,
+        edited_timestamp: null,
+        flags: 0
+      }];
+      
+      if (closedBy && closedBy !== 'unknown') {
+        messages.push({
+          id: '2',
+          type: 0,
+          content: 'This ticket was closed.',
+          channel_id: channelId,
+          author: {
+            id: closedBy,
+            username: 'System',
+            discriminator: '0000',
+            avatar: null,
+            bot: true
+          },
+          attachments: [],
+          embeds: [],
+          mentions: [],
+          mention_roles: [],
+          pinned: false,
+          mention_everyone: false,
+          tts: false,
+          timestamp: currentDate,
+          edited_timestamp: null,
+          flags: 0
+        });
       }
-    );
-
-    if (!response.data || !Array.isArray(response.data)) {
-      return res.status(500).json({ error: 'Failed to fetch Discord messages' });
     }
-
-    // Sort messages by timestamp (oldest first)
-    const messages = response.data.sort((a, b) => 
-      new Date(a.timestamp) - new Date(b.timestamp)
-    );
-
-    // Get channel info
-    const channelResponse = await axios.get(
-      `https://discord.com/api/v10/channels/${channelId}`,
-      {
-        headers: {
-          'Authorization': `Bot ${DISCORD_BOT_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const channelName = channelResponse.data.name || 'unknown-channel';
 
     // Generate HTML transcript
     const html = generateHtmlTranscript(messages, {
@@ -233,7 +298,7 @@ app.post('/api/transcripts/generate', async (req, res) => {
     });
 
     // Save HTML file
-    const fileName = `cali_${username}_${channelId}.html`;
+    const fileName = `transcript_${username}_${channelId}.html`;
     const transcriptsDir = path.join(__dirname, 'uploads', 'transcripts');
     
     if (!fs.existsSync(transcriptsDir)) {
@@ -259,7 +324,8 @@ app.post('/api/transcripts/generate', async (req, res) => {
       path: `/uploads/transcripts/${fileName}`,
       url: publicViewUrl,
       uploadedAt: new Date(),
-      messageCount: messages.length
+      messageCount: messages.length,
+      isPlaceholder: !DISCORD_BOT_TOKEN || messages.length <= 2
     };
 
     res.status(201).json({

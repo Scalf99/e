@@ -129,6 +129,10 @@ The API.scalf.dev service provides a simple way to generate Discord channel tran
 https://api.scalf.dev/api/transcripts/generate
 ```
 
+## No Authentication Required
+
+The API now works without requiring a Discord bot token on the server side. When no token is configured, it will generate a simplified transcript with placeholder messages. This makes it easy to get started without any authentication setup.
+
 ## Examples
 
 This repository includes two example implementations:
@@ -142,15 +146,16 @@ This repository includes two example implementations:
 The API requires the following parameters:
 
 - `channelId`: The ID of the Discord channel to generate a transcript for
-- `guildId`: The ID of the Discord guild (server) that the channel belongs to
 
 ## Optional Parameters
 
 The API also accepts several optional parameters:
 
+- `guildId`: The ID of the Discord guild (server) that the channel belongs to
 - `userId`: ID of the user who created the ticket
 - `username`: Username to display in the transcript
 - `closedBy`: ID of the user who closed the ticket
+- `messageContent`: Custom message content for the placeholder transcript (when no Discord token is configured)
 - `apiKey`: Your API key if required
 - `includeAttachments`: Whether to include message attachments (default: true)
 - `includeReactions`: Whether to include message reactions (default: true)
@@ -180,6 +185,7 @@ A successful API response will contain a `file` object with:
 - `url`: The URL to the generated transcript
 - `type`: The file type (usually HTML)
 - `size`: The file size in bytes
+- `isPlaceholder`: Boolean indicating if this is a placeholder transcript
 
 ## Error Handling
 
@@ -189,4 +195,5 @@ The examples include proper error handling to deal with API errors and other iss
 
 - Replace placeholder IDs and tokens with your actual Discord IDs and bot token
 - The Discord bot example requires Discord.js v14 or later
-- For production use, you may want to add additional error handling 
+- For production use, you may want to add additional error handling
+- With no Discord token on the server, you'll receive a basic transcript with placeholder messages 
